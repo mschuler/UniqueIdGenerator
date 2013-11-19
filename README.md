@@ -1,2 +1,1 @@
-UniqueIdGenerator
-=================
+UniqueIdGenerator=================Based on Twitter's Snowflake.- 42 bits for timestamp in milliseconds- 10 bits for generator id- 12 bits for sequencetotal of 64 bits = 8 bytes
