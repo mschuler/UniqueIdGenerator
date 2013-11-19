@@ -2,8 +2,12 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace IdGenerator.Net
+namespace UniqueIdGenerator.Net
 {
+    /// <summary>
+    /// Generates new unique ids based on Twitter's Snowflake algorithm.
+    /// This class is not thread-safe.
+    /// </summary>
     public class Generator
     {
         private readonly byte[] _buffer = new byte[8];
@@ -16,6 +20,11 @@ namespace IdGenerator.Net
         private short _sequence;
         private long _previousTime;
 
+        /// <summary>
+        /// Instantiate the generator. Each Generator should have its own ID, so you can
+        /// use multiple Generator instances in a cluster. All generated IDs are unique
+        /// provided the start date newer changes. I recommend to choose January 1, 2013.
+        /// </summary>
         public Generator(short machineId, DateTime start)
         {
             if (machineId < 0 || machineId > 1023)
@@ -31,6 +40,9 @@ namespace IdGenerator.Net
             _start = start;
         }
 
+        /// <summary>
+        /// Can generate up to 4096 different IDs per millisecond.
+        /// </summary>
         public string Next()
         {
             SpinToNextSequence();
@@ -39,26 +51,21 @@ namespace IdGenerator.Net
             return Convert.ToBase64String(_buffer, Base64FormattingOptions.None);
         }
 
-        public override string ToString()
-        {
-            return string.Format("IdGenerator-{0:0000}", BitConverter.ToUInt16(new[] { _idBytes[0], _idBytes[1] }, 0));
-        }
-
         internal unsafe void WriteValuesToByteArray(byte[] target, long time, short sequence)
         {
-            fixed (byte* numPtr = target)
+            fixed (byte* arrayPointer = target)
             {
-                *(long*)numPtr = 0;
+                *(long*)arrayPointer = 0;
             }
 
-            fixed (byte* numPtr = _timeBytes)
+            fixed (byte* arrayPointer = _timeBytes)
             {
-                *(long*)numPtr = time << 22;
+                *(long*)arrayPointer = time << 22;
             }
 
-            fixed (byte* numPtr = _sequenceBytes)
+            fixed (byte* arrayPointer = _sequenceBytes)
             {
-                *(short*)numPtr = sequence;
+                *(short*)arrayPointer = sequence;
             }
 
             WriteValuesToByteArray(target, _timeBytes, _idBytes, _sequenceBytes);
@@ -66,12 +73,13 @@ namespace IdGenerator.Net
 
         private unsafe void CalculateIdBytes(short id)
         {
-            fixed (byte* numPtr = _idBytes)
+            fixed (byte* arrayPointer = _idBytes)
             {
-                *(short*)numPtr = (short)(id << 4);
+                *(short*)arrayPointer = (short)(id << 4);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteValuesToByteArray(byte[] target, byte[] time, byte[] id, byte[] sequence)
         {
             ////                                                 1234567890123456789012
@@ -79,6 +87,7 @@ namespace IdGenerator.Net
             //// id:                                           0011111111110000
             //// seq:                                                  0000111111111111
             ////
+            ////       000000000000000100010111101010100001000010 0000001011 000000000000
             //// pos:  0         1         2         3         4         5         6
             //// byte: 0       1       2       3       4       5       6       7
 
@@ -96,18 +105,17 @@ namespace IdGenerator.Net
             target[7] = (byte)(target[7] | sequence[0]);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SpinToNextSequence()
         {
-            long time;
+            var time = GetTime();
 
-            while (_previousTime == (time = GetTime()) && _sequence >= 4096)
+            while (time == _previousTime && _sequence >= 4095)
             {
-                Thread.Sleep(1);
+                Thread.Sleep(TimeSpan.FromTicks(1));
+                time = GetTime();
             }
 
-            _sequence = (short)((_previousTime != time) ? 0 : _sequence + 1);
-
+            _sequence = time == _previousTime ? (short)(_sequence + 1) : (short)0;
             _previousTime = time;
         }
 

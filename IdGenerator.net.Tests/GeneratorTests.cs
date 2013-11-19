@@ -1,27 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Extensions;
+using Xunit.Sdk;
 
-namespace IdGenerator.Net.Tests
+namespace UniqueIdGenerator.Net.Tests
 {
-    public class GeneratorTests
+    public class GeneratorTests : TestClass
     {
         [Fact]
-        public void GetThousands()
+        public void When_generating_hundred_thousand_ids_with_one_single_generator_then_every_id_is_unique()
         {
-            const int Number = 100000;
+            const int number = 100000;
 
-            var stopwatch = Stopwatch.StartNew();
-            var ids = GetIds(0, Number);
-            stopwatch.Stop();
-
-            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
-            Console.WriteLine("Number of ids generated in 1 ms: {0}", ids.Count / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine();
+            var ids = GetIds(0, number);
 
             var unique = new HashSet<string>(StringComparer.Ordinal);
             foreach (var id in ids)
@@ -37,32 +33,35 @@ namespace IdGenerator.Net.Tests
         }
 
         [Fact]
-        public void GetWithHundredMachines()
+        public void When_generating_ten_thousand_ids_with_hundred_different_generators_then_every_id_is_unique()
         {
-            const int Number = 10000;
-            const int Machines = 100;
-            var lists = new IList<string>[Machines];
+            const int number = 10000;
+            const int machines = 100;
+            var lists = new IList<string>[machines];
 
-            var stopwatch = Stopwatch.StartNew();
-            Parallel.For(0, Machines, m => { lists[m] = GetIds((short)m, Number); });
-            stopwatch.Stop();
+            Parallel.For(0, machines, m => { lists[m] = GetIds((short)m, number); });
 
-            var ids = lists.SelectMany(l => l).ToList();
+            var unique = new Dictionary<string, int>(StringComparer.Ordinal);
 
-            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
-            Console.WriteLine("Number of ids generated in 1 ms: {0}", ids.Count / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine();
-
-            var unique = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var id in ids)
+            for (int machineId = 0; machineId < lists.Length; machineId++)
             {
-                Assert.False(unique.Contains(id), id);
-                unique.Add(id);
+                var list = lists[machineId];
+
+                foreach (var id in list)
+                {
+                    int previousMachineId;
+                    if (unique.TryGetValue(id, out previousMachineId))
+                    {
+                        var msg = string.Format("Machine {0} and {1} created the same id: {2}", previousMachineId, machineId, id);
+                        throw new AssertException(msg);
+                    }
+                    unique.Add(id, machineId);
+                }
             }
         }
 
         [Fact]
-        public void GetValue()
+        public void When_changing_only_single_bit_then_the_id_is_generated_correctly()
         {
             var target = new byte[8];
             var generator = new Generator(1023, DateTime.Today);
@@ -93,21 +92,7 @@ namespace IdGenerator.Net.Tests
         }
 
         [Fact]
-        public void TimeBits()
-        {
-            var target = new byte[8];
-            var max = (long)Math.Pow(2, 42);
-            var generator = new Generator(0, DateTime.Today);
-
-            for (long i = 0; i < max; i++)
-            {
-                generator.WriteValuesToByteArray(target, i, 0);
-                Assert.Equal("0000000000000000000000", GetString(target).Substring(42));
-            }
-        }
-
-        [Fact]
-        public void SequenceBits()
+        public void When_iterating_through_all_possible_sequences_then_every_generated_id_is_correct()
         {
             var target = new byte[8];
             var generator = new Generator(0, DateTime.Today);
@@ -123,7 +108,7 @@ namespace IdGenerator.Net.Tests
         }
 
         [Fact]
-        public void MachineBits()
+        public void When_iterating_through_all_possible_generators_then_every_generated_id_is_correct()
         {
             var target = new byte[8];
 
@@ -131,32 +116,69 @@ namespace IdGenerator.Net.Tests
             {
                 var generator = new Generator(i, DateTime.Today);
                 generator.WriteValuesToByteArray(target, 0, 0);
-                Assert.Equal("000000000000000000000000000000000000000000", GetString(target).Substring(0, 42));
-                Assert.Equal("000000000000", GetString(target).Substring(52, 12));
+                var s = GetString(target);
+                Assert.Equal("000000000000000000000000000000000000000000", s.Substring(0, 42));
+                Assert.Equal("000000000000", s.Substring(52, 12));
 
                 var m = Convert.ToString(i, 2).PadLeft(10, '0');
-                Assert.Equal(m, GetString(target).Substring(42, 10));
+                Assert.Equal(m, s.Substring(42, 10));
             }
         }
 
         [Fact]
-        public void CollisionTest()
+        public void When_converting_from_id_to_long_and_back_then_the_id_is_the_same()
         {
-            Func<string, string> bits = id => GetString(Convert.FromBase64String(id));
-            Func<string, long> ms = id => Convert.ToInt64(GetString(Convert.FromBase64String(id)).Substring(0, 42), 2);
-            Func<string, short> mid = id => Convert.ToInt16(GetString(Convert.FromBase64String(id)).Substring(42, 10), 2);
-            Func<string, short> seq = id => Convert.ToInt16(GetString(Convert.FromBase64String(id)).Substring(52, 12), 2);
-            Func<long, string> ts = l => TimeSpan.FromMilliseconds(l).ToString("g", CultureInfo.InvariantCulture);
+            var tests = new[]
+            {
+                "AACxgFbAEAA=",
+                "AAC3UcJAMAA=",
+                "AAC3a4sAMAA=",
+                "AADOCnOAEAA=",
+                "AAEQBrnAEAA=",
+                "AAESfkpAEAA=",
+                "AAETZ2AAEAA="
+            };
 
-            Action<string> print = id => Console.WriteLine("{0} - {1} - {2} - {3}", bits(id), ts(ms(id)), mid(id), seq(id));
-
-            print("AACxgFbAEAA=");
-            print("AAC3UcJAMAA=");
-            print("AAC3a4sAMAA=");
-            print("AADOCnOAEAA=");
+            foreach (var test in tests)
+            {
+                var l = IdConverter.ToLong(test);
+                var s = IdConverter.ToString(l);
+                Assert.Equal(test, s);
+                Console.WriteLine("{0} => {1}", test, l);
+            }
         }
 
-        private static string GetString(byte[] bytes)
+        [Fact]
+        public void Performance_test_with_ten_million_unique_ids_with_hundred_different_generators()
+        {
+            const int number = 100000;
+            const int machines = 100;
+
+            var stopwatch = Stopwatch.StartNew();
+            Parallel.For(0, machines, m => GetIds((short)m, number));
+            stopwatch.Stop();
+
+            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, number * machines);
+            Console.WriteLine("Number of ids generated in 1 ms: {0}", number * machines / stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Number of ids generated in 1 s: {0}", (int)(number * machines / (stopwatch.ElapsedMilliseconds / 1000.0)));
+        }
+
+        [Fact]
+        public void Performance_test_with_ten_million_unique_ids_with_single_generator()
+        {
+            const int number = 10000000;
+
+            var stopwatch = Stopwatch.StartNew();
+            var ids = GetIds(0, number);
+            stopwatch.Stop();
+
+            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
+            Console.WriteLine("Number of ids generated in 1 ms: {0}", ids.Count / stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Number of ids generated in 1 s: {0}", (int)(ids.Count / (stopwatch.ElapsedMilliseconds / 1000.0)));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetString(IEnumerable<byte> bytes)
         {
             return string.Concat(bytes.SelectMany(y => Convert.ToString(y, 2).PadLeft(8, '0')));
         }
