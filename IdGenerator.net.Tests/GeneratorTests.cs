@@ -79,6 +79,64 @@ namespace IdGenerator.Net.Tests
             generator = new Generator(1022, DateTime.Today);
             generator.WriteValuesToByteArray(target, 4398046511103, 4095);
             Assert.Equal("1111111111111111111111111111111111111111111111111110111111111111", GetString(target));
+
+            for (int i = 0; i < 1024; i++)
+            {
+                generator = new Generator((short)i, DateTime.Today);
+                generator.WriteValuesToByteArray(target, 0, 0);
+                Assert.Equal("000000000000000000000000000000000000000000", GetString(target).Substring(0, 42));
+                Assert.Equal("000000000000", GetString(target).Substring(52, 12));
+
+                var m = Convert.ToString(i, 2).PadLeft(10, '0');
+                Assert.Equal(m, GetString(target).Substring(42, 10));
+            }
+        }
+
+        [Fact]
+        public void TimeBits()
+        {
+            var target = new byte[8];
+            var max = (long)Math.Pow(2, 42);
+            var generator = new Generator(0, DateTime.Today);
+
+            for (long i = 0; i < max; i++)
+            {
+                generator.WriteValuesToByteArray(target, i, 0);
+                Assert.Equal("0000000000000000000000", GetString(target).Substring(42));
+            }
+        }
+
+        [Fact]
+        public void SequenceBits()
+        {
+            var target = new byte[8];
+            var generator = new Generator(0, DateTime.Today);
+
+            for (short i = 0; i < 4096; i++)
+            {
+                generator.WriteValuesToByteArray(target, 0, i);
+                Assert.Equal("0000000000000000000000000000000000000000000000000000", GetString(target).Substring(0, 52));
+
+                var s = Convert.ToString(i, 2).PadLeft(12, '0');
+                Assert.Equal(s, GetString(target).Substring(52, 12));
+            }
+        }
+
+        [Fact]
+        public void MachineBits()
+        {
+            var target = new byte[8];
+
+            for (short i = 0; i < 1024; i++)
+            {
+                var generator = new Generator(i, DateTime.Today);
+                generator.WriteValuesToByteArray(target, 0, 0);
+                Assert.Equal("000000000000000000000000000000000000000000", GetString(target).Substring(0, 42));
+                Assert.Equal("000000000000", GetString(target).Substring(52, 12));
+
+                var m = Convert.ToString(i, 2).PadLeft(10, '0');
+                Assert.Equal(m, GetString(target).Substring(42, 10));
+            }
         }
 
         [Fact]
@@ -95,6 +153,7 @@ namespace IdGenerator.Net.Tests
             print("AACxgFbAEAA=");
             print("AAC3UcJAMAA=");
             print("AAC3a4sAMAA=");
+            print("AADOCnOAEAA=");
         }
 
         private static string GetString(byte[] bytes)
