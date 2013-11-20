@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -10,11 +11,20 @@ namespace UniqueIdGenerator.Net
     /// </summary>
     public class Generator
     {
+        // should be between 40 (34 years) and 42 (139 years)
+        internal const int NumberOfTimeBits = 42;
+
+        // should be between 0 (single generator) and 10 (1024 generators)
+        internal const int NumberOfGeneratorIdBits = 9;
+
+        // should be 10 at least (4096 unique ids per millisecond per generator)
+        internal const int NumberOfSequenceBits = 64 - NumberOfTimeBits - NumberOfGeneratorIdBits;
+
         private readonly byte[] _buffer = new byte[8];
         private readonly byte[] _timeBytes = new byte[8];
         private readonly byte[] _idBytes = new byte[2];
         private readonly byte[] _sequenceBytes = new byte[2];
-
+        private readonly int _maxSequence = (int)Math.Pow(2, NumberOfSequenceBits) - 1;
         private readonly DateTime _start;
 
         private short _sequence;
@@ -25,18 +35,22 @@ namespace UniqueIdGenerator.Net
         /// use multiple Generator instances in a cluster. All generated IDs are unique
         /// provided the start date newer changes. I recommend to choose January 1, 2013.
         /// </summary>
-        public Generator(short machineId, DateTime start)
+        public Generator(short generatorId, DateTime start)
         {
-            if (machineId < 0 || machineId > 1023)
+            if (generatorId < 0 || generatorId >= Math.Pow(2, NumberOfGeneratorIdBits))
             {
-                throw new ArgumentException("machineId must be between 0 and 1023.", "machineId");
+                var msg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "generator id must be between 0 (inclusive) and {0} (exclusive).",
+                    Math.Pow(2, NumberOfGeneratorIdBits));
+                throw new ArgumentException(msg, "generatorId");
             }
             if (start > DateTime.Today)
             {
                 throw new ArgumentException("start date must not be in the future.", "start");
             }
 
-            CalculateIdBytes(machineId);
+            CalculateIdBytes(generatorId);
             _start = start;
         }
 
@@ -60,7 +74,7 @@ namespace UniqueIdGenerator.Net
 
             fixed (byte* arrayPointer = _timeBytes)
             {
-                *(long*)arrayPointer = time << 22;
+                *(long*)arrayPointer = time << (64 - NumberOfTimeBits);
             }
 
             fixed (byte* arrayPointer = _sequenceBytes)
@@ -75,7 +89,7 @@ namespace UniqueIdGenerator.Net
         {
             fixed (byte* arrayPointer = _idBytes)
             {
-                *(short*)arrayPointer = (short)(id << 4);
+                *(short*)arrayPointer = (short)(id << (8 - ((64 - NumberOfSequenceBits) % 8)));
             }
         }
 
@@ -97,6 +111,8 @@ namespace UniqueIdGenerator.Net
             target[3] = (byte)(target[3] | time[4]);
             target[4] = (byte)(target[4] | time[3]);
             target[5] = (byte)(target[5] | time[2]);
+            target[6] = (byte)(target[6] | time[1]);
+            target[7] = (byte)(target[7] | time[0]);
 
             target[5] = (byte)(target[5] | id[1]);
             target[6] = (byte)(target[6] | id[0]);
@@ -109,9 +125,9 @@ namespace UniqueIdGenerator.Net
         {
             var time = GetTime();
 
-            while (time == _previousTime && _sequence >= 4095)
+            while (time == _previousTime && _sequence >= _maxSequence)
             {
-                Thread.Sleep(TimeSpan.FromTicks(1));
+                Thread.Sleep(0);
                 time = GetTime();
             }
 

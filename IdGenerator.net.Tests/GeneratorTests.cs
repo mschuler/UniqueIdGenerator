@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Extensions;
@@ -63,31 +62,36 @@ namespace UniqueIdGenerator.Net.Tests
         [Fact]
         public void When_changing_only_single_bit_then_the_id_is_generated_correctly()
         {
+            var numberOfGenerators = Math.Pow(2, Generator.NumberOfGeneratorIdBits);
             var target = new byte[8];
-            var generator = new Generator(1023, DateTime.Today);
+            var generator = new Generator((short)(numberOfGenerators - 1), DateTime.Today);
 
-            generator.WriteValuesToByteArray(target, 4398046511103, 4095);
-            Assert.Equal("1111111111111111111111111111111111111111111111111111111111111111", GetString(target));
+            generator.WriteValuesToByteArray(target, 4398046511103, 8191);
+            Assert.Equal(new string('1', 64), GetString(target));
 
-            generator.WriteValuesToByteArray(target, 4398046511103, 4094);
-            Assert.Equal("1111111111111111111111111111111111111111111111111111111111111110", GetString(target));
+            generator.WriteValuesToByteArray(target, 4398046511103, 8190);
+            Assert.Equal(new string('1', 63) + "0", GetString(target));
 
-            generator.WriteValuesToByteArray(target, 4398046511102, 4095);
-            Assert.Equal("1111111111111111111111111111111111111111101111111111111111111111", GetString(target));
+            generator.WriteValuesToByteArray(target, 4398046511102, 8191);
+            Assert.Equal(
+                new string('1', Generator.NumberOfTimeBits - 1) + "0" + new string('1', 64 - Generator.NumberOfTimeBits),
+                GetString(target));
 
-            generator = new Generator(1022, DateTime.Today);
-            generator.WriteValuesToByteArray(target, 4398046511103, 4095);
-            Assert.Equal("1111111111111111111111111111111111111111111111111110111111111111", GetString(target));
+            generator = new Generator((short)(numberOfGenerators - 2), DateTime.Today);
+            generator.WriteValuesToByteArray(target, 4398046511103, 8191);
+            Assert.Equal(
+                new string('1', 63 - Generator.NumberOfSequenceBits) + "0" + new string('1', Generator.NumberOfSequenceBits),
+                GetString(target));
 
-            for (int i = 0; i < 1024; i++)
+            for (int i = 0; i < numberOfGenerators; i++)
             {
                 generator = new Generator((short)i, DateTime.Today);
                 generator.WriteValuesToByteArray(target, 0, 0);
-                Assert.Equal("000000000000000000000000000000000000000000", GetString(target).Substring(0, 42));
-                Assert.Equal("000000000000", GetString(target).Substring(52, 12));
+                Assert.Equal(new string('0', Generator.NumberOfTimeBits), GetString(target).Substring(0, Generator.NumberOfTimeBits));
+                Assert.Equal(new string('0', Generator.NumberOfSequenceBits), GetString(target).Substring(64 - Generator.NumberOfSequenceBits, Generator.NumberOfSequenceBits));
 
-                var m = Convert.ToString(i, 2).PadLeft(10, '0');
-                Assert.Equal(m, GetString(target).Substring(42, 10));
+                var m = Convert.ToString(i, 2).PadLeft(Generator.NumberOfGeneratorIdBits, '0');
+                Assert.Equal(m, GetString(target).Substring(Generator.NumberOfTimeBits, Generator.NumberOfGeneratorIdBits));
             }
         }
 
@@ -96,14 +100,15 @@ namespace UniqueIdGenerator.Net.Tests
         {
             var target = new byte[8];
             var generator = new Generator(0, DateTime.Today);
+            var firstPartLength = 64 - Generator.NumberOfSequenceBits;
 
-            for (short i = 0; i < 4096; i++)
+            for (short i = 0; i < Math.Pow(2, Generator.NumberOfSequenceBits); i++)
             {
                 generator.WriteValuesToByteArray(target, 0, i);
-                Assert.Equal("0000000000000000000000000000000000000000000000000000", GetString(target).Substring(0, 52));
+                Assert.Equal(new string('0', firstPartLength), GetString(target).Substring(0, firstPartLength));
 
-                var s = Convert.ToString(i, 2).PadLeft(12, '0');
-                Assert.Equal(s, GetString(target).Substring(52, 12));
+                var s = Convert.ToString(i, 2).PadLeft(Generator.NumberOfSequenceBits, '0');
+                Assert.Equal(s, GetString(target).Substring(firstPartLength, Generator.NumberOfSequenceBits));
             }
         }
 
@@ -112,16 +117,16 @@ namespace UniqueIdGenerator.Net.Tests
         {
             var target = new byte[8];
 
-            for (short i = 0; i < 1024; i++)
+            for (short i = 0; i < Math.Pow(2, Generator.NumberOfGeneratorIdBits); i++)
             {
                 var generator = new Generator(i, DateTime.Today);
                 generator.WriteValuesToByteArray(target, 0, 0);
                 var s = GetString(target);
-                Assert.Equal("000000000000000000000000000000000000000000", s.Substring(0, 42));
-                Assert.Equal("000000000000", s.Substring(52, 12));
+                Assert.Equal(new string('0', Generator.NumberOfTimeBits), s.Substring(0, Generator.NumberOfTimeBits));
+                Assert.Equal(new string('0', Generator.NumberOfSequenceBits), s.Substring(64 - Generator.NumberOfSequenceBits, Generator.NumberOfSequenceBits));
 
-                var m = Convert.ToString(i, 2).PadLeft(10, '0');
-                Assert.Equal(m, s.Substring(42, 10));
+                var m = Convert.ToString(i, 2).PadLeft(Generator.NumberOfGeneratorIdBits, '0');
+                Assert.Equal(m, s.Substring(Generator.NumberOfTimeBits, Generator.NumberOfGeneratorIdBits));
             }
         }
 
@@ -158,9 +163,9 @@ namespace UniqueIdGenerator.Net.Tests
             Parallel.For(0, machines, m => GetIds((short)m, number));
             stopwatch.Stop();
 
-            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, number * machines);
-            Console.WriteLine("Number of ids generated in 1 ms: {0}", number * machines / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine("Number of ids generated in 1 s: {0}", (int)(number * machines / (stopwatch.ElapsedMilliseconds / 1000.0)));
+            Console.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, number * machines);
+            Console.WriteLine("Number of ids generated in 1 ms: {0:n0}", number * machines / stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(number * machines / (stopwatch.ElapsedMilliseconds / 1000.0)));
         }
 
         [Fact]
@@ -172,12 +177,11 @@ namespace UniqueIdGenerator.Net.Tests
             var ids = GetIds(0, number);
             stopwatch.Stop();
 
-            Console.WriteLine("Duration to generate {1} ids: {0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
-            Console.WriteLine("Number of ids generated in 1 ms: {0}", ids.Count / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine("Number of ids generated in 1 s: {0}", (int)(ids.Count / (stopwatch.ElapsedMilliseconds / 1000.0)));
+            Console.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
+            Console.WriteLine("Number of ids generated in 1 ms: {0:n0}", ids.Count / stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(ids.Count / (stopwatch.ElapsedMilliseconds / 1000.0)));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string GetString(IEnumerable<byte> bytes)
         {
             return string.Concat(bytes.SelectMany(y => Convert.ToString(y, 2).PadLeft(8, '0')));
