@@ -16,12 +16,44 @@ namespace UniqueIdGenerator.Net.Tests
         {
             const int number = 100000;
 
+            // warm-up
+            GetIds(0, number);
+
+            var stopwatch = Stopwatch.StartNew();
             var ids = GetIds(0, number);
+            stopwatch.Stop();
+            Console.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
 
             var unique = new HashSet<string>(StringComparer.Ordinal);
             foreach (var id in ids)
             {
                 Assert.False(unique.Contains(id), id);
+                unique.Add(id);
+            }
+
+            for (int i = 0; i < 100; i++)
+            {
+                Console.WriteLine(ids[i]);
+            }
+        }
+
+        [Fact]
+        public void When_generating_hundred_thousand_long_ids_with_one_single_generator_then_every_id_is_unique()
+        {
+            const int number = 100000;
+
+            // warm-up
+            GetLongIds(0, number);
+
+            var stopwatch = Stopwatch.StartNew();
+            var ids = GetLongIds(0, number);
+            stopwatch.Stop();
+            Console.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
+
+            var unique = new HashSet<ulong>();
+            foreach (var id in ids)
+            {
+                Assert.False(unique.Contains(id), id.ToString("D"));
                 unique.Add(id);
             }
 
@@ -195,6 +227,19 @@ namespace UniqueIdGenerator.Net.Tests
             for (int i = 0; i < number; i++)
             {
                 ids.Add(generator.Next());
+            }
+
+            return ids;
+        }
+
+        private IList<ulong> GetLongIds(short machineId, int number)
+        {
+            var generator = new Generator(machineId, DateTime.Today);
+            var ids = new List<ulong>(number);
+
+            for (int i = 0; i < number; i++)
+            {
+                ids.Add(generator.NextLong());
             }
 
             return ids;
