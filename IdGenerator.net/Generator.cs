@@ -46,9 +46,18 @@ namespace UniqueIdGenerator.Net
         public string Next()
         {
             SpinToNextSequence();
-
             WriteValuesToByteArray(_buffer, _previousTime, _sequence);
+
             return Convert.ToBase64String(_buffer, Base64FormattingOptions.None);
+        }
+
+        public ulong NextLong()
+        {
+            SpinToNextSequence();
+            WriteValuesToByteArray(_buffer, _previousTime, _sequence);
+
+            Array.Reverse(_buffer);
+            return BitConverter.ToUInt64(_buffer, 0);
         }
 
         internal unsafe void WriteValuesToByteArray(byte[] target, long time, short sequence)
