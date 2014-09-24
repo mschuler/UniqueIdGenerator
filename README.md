@@ -16,6 +16,8 @@ With the default configuration you can create 1024 different generators. Each ge
 Usage
 -----
 
+First, grab the assembly from [NuGet](https://www.nuget.org/packages/UniqueIdGenerator/).
+
 ```csharp
 // Create a new instance of the generator
 var generator = new Generator(machineId, projectStartDate);
