@@ -73,3 +73,6 @@ Duration to generate 12'800'000 ids: 1'510 ms
 Number of ids generated in 1 ms: 8'476  
 Number of ids generated in 1 s: 8'476'821
 
+# License
+
+Developed by [Michael Schuler](https://www.michaelschuler.ch) under the [MIT License](LICENSE)
