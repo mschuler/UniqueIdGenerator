@@ -62,7 +62,7 @@ namespace UniqueIdGenerator.NetCore
             SpinToNextSequence();
             WriteValuesToByteArray(_buffer, _previousTime, _sequence);
 
-            return Convert.ToBase64String(_buffer);
+            return Convert.ToBase64String(_buffer, Base64FormattingOptions.None);
         }
 
         public ulong NextLong()
