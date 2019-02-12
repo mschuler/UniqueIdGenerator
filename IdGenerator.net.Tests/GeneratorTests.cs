@@ -4,13 +4,19 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Extensions;
-using Xunit.Sdk;
+using Xunit.Abstractions;
 
 namespace UniqueIdGenerator.Net.Tests
 {
-    public class GeneratorTests : TestClass
+    public class GeneratorTests
     {
+        private readonly ITestOutputHelper _output;
+
+        public GeneratorTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         [Fact]
         public void When_generating_hundred_thousand_ids_with_one_single_generator_then_every_id_is_unique()
         {
@@ -22,7 +28,7 @@ namespace UniqueIdGenerator.Net.Tests
             var stopwatch = Stopwatch.StartNew();
             var ids = GetIds(0, number);
             stopwatch.Stop();
-            Console.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
+            _output.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
 
             var unique = new HashSet<string>(StringComparer.Ordinal);
             foreach (var id in ids)
@@ -33,7 +39,7 @@ namespace UniqueIdGenerator.Net.Tests
 
             for (int i = 0; i < 100; i++)
             {
-                Console.WriteLine(ids[i]);
+                _output.WriteLine(ids[i]);
             }
         }
 
@@ -48,7 +54,7 @@ namespace UniqueIdGenerator.Net.Tests
             var stopwatch = Stopwatch.StartNew();
             var ids = GetLongIds(0, number);
             stopwatch.Stop();
-            Console.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
+            _output.WriteLine("Duration: {0}ms", stopwatch.ElapsedMilliseconds);
 
             var unique = new HashSet<ulong>();
             foreach (var id in ids)
@@ -59,7 +65,7 @@ namespace UniqueIdGenerator.Net.Tests
 
             for (int i = 0; i < 100; i++)
             {
-                Console.WriteLine(ids[i]);
+                _output.WriteLine(ids[i].ToString("D"));
             }
         }
 
@@ -80,11 +86,10 @@ namespace UniqueIdGenerator.Net.Tests
 
                 foreach (var id in list)
                 {
-                    int previousMachineId;
-                    if (unique.TryGetValue(id, out previousMachineId))
+                    if (unique.TryGetValue(id, out var previousMachineId))
                     {
-                        var msg = string.Format("Machine {0} and {1} created the same id: {2}", previousMachineId, machineId, id);
-                        throw new AssertException(msg);
+                        var msg = $"Machine {previousMachineId} and {machineId} created the same id: {id}";
+                        Assert.True(false, msg);
                     }
                     unique.Add(id, machineId);
                 }
@@ -181,7 +186,7 @@ namespace UniqueIdGenerator.Net.Tests
                 var l = IdConverter.ToLong(test);
                 var s = IdConverter.ToString(l);
                 Assert.Equal(test, s);
-                Console.WriteLine("{0} => {1}", test, l);
+                _output.WriteLine("{0} => {1}", test, l);
             }
         }
 
@@ -195,9 +200,9 @@ namespace UniqueIdGenerator.Net.Tests
             Parallel.For(0, machines, m => GetIds((short)m, number));
             stopwatch.Stop();
 
-            Console.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, number * machines);
-            Console.WriteLine("Number of ids generated in 1 ms: {0:n0}", number * machines / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(number * machines / (stopwatch.ElapsedMilliseconds / 1000.0)));
+            _output.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, number * machines);
+            _output.WriteLine("Number of ids generated in 1 ms: {0:n0}", number * machines / stopwatch.ElapsedMilliseconds);
+            _output.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(number * machines / (stopwatch.ElapsedMilliseconds / 1000.0)));
         }
 
         [Fact]
@@ -209,9 +214,9 @@ namespace UniqueIdGenerator.Net.Tests
             var ids = GetIds(0, number);
             stopwatch.Stop();
 
-            Console.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
-            Console.WriteLine("Number of ids generated in 1 ms: {0:n0}", ids.Count / stopwatch.ElapsedMilliseconds);
-            Console.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(ids.Count / (stopwatch.ElapsedMilliseconds / 1000.0)));
+            _output.WriteLine("Duration to generate {1:n0} ids: {0:n0} ms", stopwatch.ElapsedMilliseconds, ids.Count);
+            _output.WriteLine("Number of ids generated in 1 ms: {0:n0}", ids.Count / stopwatch.ElapsedMilliseconds);
+            _output.WriteLine("Number of ids generated in 1 s: {0:n0}", (int)(ids.Count / (stopwatch.ElapsedMilliseconds / 1000.0)));
         }
 
         private static string GetString(IEnumerable<byte> bytes)

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace UniqueIdGenerator.Net
 {
@@ -62,7 +61,7 @@ namespace UniqueIdGenerator.Net
             SpinToNextSequence();
             WriteValuesToByteArray(_buffer, _previousTime, _sequence);
 
-            return Convert.ToBase64String(_buffer, Base64FormattingOptions.None);
+            return Convert.ToBase64String(_buffer);
         }
 
         public ulong NextLong()
@@ -136,7 +135,6 @@ namespace UniqueIdGenerator.Net
 
             while (time == _previousTime && _sequence >= _maxSequence)
             {
-                Thread.Sleep(0);
                 time = GetTime();
             }
 
