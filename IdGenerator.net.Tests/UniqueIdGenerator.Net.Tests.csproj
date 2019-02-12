@@ -17,8 +17,4 @@
     <ProjectReference Include="..\IdGenerator.net\UniqueIdGenerator.Net.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-
 </Project>

@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
     <Authors>Michael Schuler</Authors>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
-    <PackageLicenseUrl>https://github.com/mschuler/UniqueIdGenerator/blob/master/LICENSE</PackageLicenseUrl>
+    <Version>2.0.0</Version>
+	<Title>UniqueIdGenerator</Title>
+	<PackageDescription>Easy to use and super fast C# implementation of Twitter's Snowflake to generate sequential 8 byte unique identifiers.</PackageDescription>
     <RepositoryUrl>https://github.com/mschuler/UniqueIdGenerator</RepositoryUrl>
   </PropertyGroup>
 
