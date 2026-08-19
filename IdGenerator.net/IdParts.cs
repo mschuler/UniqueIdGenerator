@@ -14,9 +14,13 @@ namespace UniqueIdGenerator.Net
         {
             var bytes = Convert.FromBase64String(id);
             _bits = string.Concat(bytes.Select(y => Convert.ToString((byte)y, 2).PadLeft(8, '0')));
-            _generatorId = Convert.ToInt16(_bits.Substring(42, 10), 2);
-            _sequence = Convert.ToInt16(_bits.Substring(52, 12), 2);
-            _time = TimeSpan.FromMilliseconds(Convert.ToInt64(_bits.Substring(0, 42), 2));
+            _generatorId = Convert.ToInt16(
+                _bits.Substring(Generator.NumberOfTimeBits, Generator.NumberOfGeneratorIdBits),
+                2);
+            _sequence = Convert.ToInt64(
+                _bits.Substring(Generator.NumberOfTimeBits + Generator.NumberOfGeneratorIdBits, Generator.NumberOfSequenceBits),
+                2);
+            _time = TimeSpan.FromMilliseconds(Convert.ToInt64(_bits.Substring(0, Generator.NumberOfTimeBits), 2));
         }
 
         public string Bits { get { return _bits; } }

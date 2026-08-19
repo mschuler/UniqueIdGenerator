@@ -6,12 +6,12 @@ The ID consists of a timestamp (milliseconds since specific start date), a gener
 
 This is the default configuration:
 
-- 41 bits for timestamp in milliseconds (can vary from 40 to 45)
-- 10 bits for generator id (can vary from 0 to 10)
+- 42 bits for timestamp in milliseconds
+- 9 bits for generator id
 - 13 bits for sequence (can vary from 12 to 20)
 
 You can change this default values to gain more performance on a single process (more sequence-bits) or more performance in a cluster (more generator-bits).  
-With the default configuration you can create 1024 different generators. Each generator can create up to 8192 unique IDs per millisecond for 69 years.
+With the default configuration you can create 512 different generators. Each generator can create up to 8192 unique IDs per millisecond for 139 years.
 
 Usage
 -----

@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniqueIdGenerator.Net", "Id
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniqueIdGenerator.Net.Tests", "IdGenerator.net.Tests\UniqueIdGenerator.Net.Tests.csproj", "{ABC25329-4B08-4B81-9C5C-091C1F0AB7ED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniqueIdGenerator.Net.Benchmarks", "IdGenerator.net.Benchmarks\UniqueIdGenerator.Net.Benchmarks.csproj", "{D8609C97-815E-4C84-97E9-FA433A5D4EDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{ABC25329-4B08-4B81-9C5C-091C1F0AB7ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABC25329-4B08-4B81-9C5C-091C1F0AB7ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABC25329-4B08-4B81-9C5C-091C1F0AB7ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8609C97-815E-4C84-97E9-FA433A5D4EDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8609C97-815E-4C84-97E9-FA433A5D4EDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8609C97-815E-4C84-97E9-FA433A5D4EDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8609C97-815E-4C84-97E9-FA433A5D4EDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

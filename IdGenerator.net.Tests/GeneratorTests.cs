@@ -191,6 +191,22 @@ namespace UniqueIdGenerator.Net.Tests
         }
 
         [Fact]
+        public void When_reading_id_parts_then_the_generator_bit_configuration_is_used()
+        {
+            const short generatorId = 511;
+            const short sequence = 8191;
+            const long time = 123456789;
+            var bytes = new byte[8];
+            var generator = new Generator(generatorId, DateTime.Today);
+
+            generator.WriteValuesToByteArray(bytes, time, sequence);
+            var parts = new IdParts(Convert.ToBase64String(bytes));
+
+            Assert.Equal(TimeSpan.FromMilliseconds(time), parts.Time);
+            Assert.Equal(generatorId, parts.GeneratorId);
+            Assert.Equal(sequence, parts.Sequence);
+        }
+        [Fact]
         public void Performance_test_with_ten_million_unique_ids_with_hundred_different_generators()
         {
             const int number = 100000;
