@@ -89,7 +89,7 @@ namespace UniqueIdGenerator.Net.Tests
                     if (unique.TryGetValue(id, out var previousMachineId))
                     {
                         var msg = $"Machine {previousMachineId} and {machineId} created the same id: {id}";
-                        Assert.True(false, msg);
+                        Assert.Fail(msg);
                     }
                     unique.Add(id, machineId);
                 }
